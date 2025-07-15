@@ -1,8 +1,13 @@
 import React, { useState } from "react";
 // import "../styles/Navbar.css";
 import { FaTimes, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const getStarted = () => {
+    navigate("/about");
+  };
   const services = [
     { label: "Website Designing", href: "/services/website-designing" },
     { label: "Website Development", href: "/services/website-development" },
@@ -26,7 +31,6 @@ const Navbar = () => {
     { label: "Digital Products", href: "/products/digital-products" },
   ];
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [SidebarOpenFullScreen, setSidebarOpenFullScreen] = useState(true);
   const [expand, setExpand] = useState({
     services: false,
     products: false,
@@ -64,7 +68,7 @@ const Navbar = () => {
           {/* Services */}
           <div className="relative group">
             <button className="relative cursor-pointer font-medium text-gray-700 hover:text-blue-600 transition-all duration-300  underline-offset-4 hover:pl-1">
-              Our Services 
+              Our Services
               <span className="absolute left-0 top-6 h-[2px] w-0 bg-blue-600 transition-all duration-900 group-hover:w-full"></span>
             </button>
             <div className="absolute left-0 mt-1 bg-white shadow-lg rounded-md opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-300 z-50 w-64">
