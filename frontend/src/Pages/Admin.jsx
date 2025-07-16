@@ -208,13 +208,26 @@ const Admin = () => {
   };
 
   // --- User Management Actions ---
-  const handleUserAction = (id, action) => {
+  const handleUserAction = async (id, action) => {
     alert(`User ID: ${id} - Action: ${action}`);
     // In a real app, you'd make API calls here to update user status/role/delete
-    if (action === "delete") {
-      setUsers(users.filter((user) => user.id !== id));
-    }
     // For edit, you might open a specific user edit modal
+    if (action === "makeAdmin") {
+      console.log("Admin change request called!");
+
+      await axios.put(`http://localhost:5000/api/users/make-admin/${id}`);
+
+      // fetchUsers(); // re-fetch users if needed
+    }
+
+    if (action === "delete") {
+      try {
+        await axios.delete(`http://localhost:5000/api/users/delete/${id}`);
+        alert("User deleted");
+      } catch (err) {
+        alert("User not deleted");
+      }
+    }
   };
 
   // --- Service/Product Management Actions ---
@@ -304,12 +317,7 @@ const Admin = () => {
                   >
                     Role
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
+
                   <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -321,6 +329,12 @@ const Admin = () => {
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
                     Actions
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Authority
                   </th>
                 </tr>
               </thead>
@@ -340,31 +354,25 @@ const Admin = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
                       {user.role}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          statusColors[user.status]
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
-                        onClick={() => handleUserAction(user.id, "edit")}
-                        className="text-purple-600 hover:text-purple-900 transition-colors flex items-center gap-1"
-                      >
-                        <Edit size={16} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleUserAction(user.id, "delete")}
+                        onClick={() => handleUserAction(user._id, "delete")}
                         className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
                       >
                         <Trash2 size={16} /> Delete
                       </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span
+                        onClick={() => handleUserAction(user._id, "makeAdmin")}
+                        className={`cursor-pointer px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 hover:bg-green-200 transition`}
+                      >
+                        Make Admin
+                      </span>
                     </td>
                   </motion.tr>
                 ))}

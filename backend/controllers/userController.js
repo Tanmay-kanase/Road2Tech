@@ -1,3 +1,4 @@
+import User from "../models/User.js";
 import {
   registerUser,
   loginUser,
@@ -46,6 +47,32 @@ export const sendOtpToEmail = async (req, res, next) => {
   } catch (err) {
     console.log(err);
     next(err);
+  }
+};
+
+export const deleteUserController = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting user" });
+  }
+};
+
+export const makeAdminController = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role: "admin" },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({ message: "User promoted to admin", user });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating role" });
   }
 };
 
