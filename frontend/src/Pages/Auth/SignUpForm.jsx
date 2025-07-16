@@ -1,5 +1,7 @@
 import React from "react";
-
+import { storage } from "../../config/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import axios from "axios";
 const SignUpForm = () => {
   const buttonClasses = `w-full text-white bg-[#03C9D7] hover:bg-[#039BAB] focus:ring-4 focus:outline-none 
     focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all 
@@ -7,8 +9,50 @@ const SignUpForm = () => {
   const buttonForGFT = `inline-flex w-full justify-center items-center rounded-lg border border-gray-300 bg-white 
     py-2.5 px-4 text-sm font-medium text-gray-500 hover:bg-gray-50 shadow-sm transition-all 
     duration-200 hover:shadow hover:border-gray-400`;
+
+  const handleSubmit = async (e) => {
+    console.log("Handle submit called");
+
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const fullName = formData.get("fullName");
+    const email = formData.get("email");
+    const password = formData.get("password");
+    const confirmPassword = formData.get("confirmPassword");
+    const imageFile = formData.get("profileImage"); // 👈 Add input below for this
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    let profileUrl = "";
+
+    if (imageFile) {
+      const imageRef = ref(storage, `profiles/${Date.now()}-${imageFile.name}`);
+      await uploadBytes(imageRef, imageFile);
+      profileUrl = await getDownloadURL(imageRef);
+    }
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/users/register", {
+        name: fullName,
+        email,
+        password,
+        profileUrl,
+      });
+
+      console.log("User registered:", res.data);
+      alert("Registration successful!");
+    } catch (err) {
+      console.error(err);
+      alert("Registration failed.");
+    }
+  };
+
   return (
-    <div className="w-full bg-white rounded-lg shadow-xl md:mt-0 sm:max-w-md xl:p-0 border border-gray-100">
+    <div className="w-full max-w-md bg-white rounded-lg shadow-2xl md:mt-0 xl:p-0 border border-gray-200 mx-auto">
       <div className="p-6 space-y-6 md:space-y-7 sm:p-8">
         <h1 className="text-xl font-bold leading-tight tracking-tight text-backgroundColor md:text-2xl text-center">
           Create Account
@@ -40,6 +84,23 @@ const SignUpForm = () => {
                 id="fullName"
                 className="bg-[#d5f2ec] border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-brightColor focus:border-brightColor block w-full pl-10 p-3 transition-all duration-200 shadow-sm"
                 placeholder="Full name"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <label
+                className="text-sm text-gray-600 block mb-1"
+                htmlFor="profileImage"
+              >
+                Profile Image
+              </label>
+              <input
+                type="file"
+                name="profileImage"
+                id="profileImage"
+                accept="image/*"
+                className="block w-full text-sm text-gray-900 bg-[#d5f2ec] border border-gray-300 rounded-lg cursor-pointer p-2"
                 required
               />
             </div>
@@ -150,12 +211,16 @@ const SignUpForm = () => {
             </div>
           </div>
 
-          <button type="submit" className={buttonClasses}>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            className={buttonClasses}
+          >
             Create Account
           </button>
         </form>
 
-        <div className="relative">
+        {/* <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-300"></div>
           </div>
@@ -165,7 +230,7 @@ const SignUpForm = () => {
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          {/* Google */}
+         
           <button type="button" className={buttonForGFT}>
             <svg
               className="h-5 w-5"
@@ -177,7 +242,7 @@ const SignUpForm = () => {
             </svg>
           </button>
 
-          {/* Facebook */}
+         
           <button type="button" className={buttonForGFT}>
             <svg
               className="h-5 w-5"
@@ -193,7 +258,7 @@ const SignUpForm = () => {
             </svg>
           </button>
 
-          {/* Twitter/X */}
+          
           <button type="button" className={buttonForGFT}>
             <svg
               className="h-5 w-5"
@@ -204,7 +269,7 @@ const SignUpForm = () => {
               <path d="M13.6823 10.6218L20.2391 3H18.6854L12.9921 9.61788L8.44486 3H3.2002L10.0765 13.0074L3.2002 21H4.75404L10.7663 14.0113L15.5685 21H20.8131L13.6819 10.6218H13.6823ZM11.5541 13.0956L10.8574 12.0991L5.31391 4.16971H7.70053L12.1742 10.5689L12.8709 11.5655L18.6861 19.8835H16.2995L11.5541 13.096V13.0956Z" />
             </svg>
           </button>
-        </div>
+        </div> */}
 
         <p className="text-sm text-center text-gray-600 mt-4 border-t border-gray-100 pt-4">
           Already have an account? Sign in
