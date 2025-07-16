@@ -2,14 +2,34 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export const registerUser = async ({ name, email, password }) => {
+export const registerUser = async ({ name, email, password, profileUrl }) => {
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new Error("User already exists");
 
   const hashed = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hashed });
 
-  return { id: user._id, email: user.email, name: user.name };
+  const user = await User.create({
+    name,
+    email,
+    password: hashed,
+    profileUrl,
+  });
+
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+
+  return {
+    token,
+    user: {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      profileUrl: user.profileUrl,
+    },
+  };
 };
 
 export const loginUser = async ({ email, password }) => {

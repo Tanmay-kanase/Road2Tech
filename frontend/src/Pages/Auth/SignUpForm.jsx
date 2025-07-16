@@ -2,15 +2,24 @@ import React from "react";
 import { storage } from "../../config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import axios from "axios";
+import { useState } from "react";
+import { uploadBytesResumable } from "firebase/storage";
+import { useNavigate } from "react-router-dom";
+
 const SignUpForm = () => {
+  const navigate = useNavigate();
   const buttonClasses = `w-full text-white bg-[#03C9D7] hover:bg-[#039BAB] focus:ring-4 focus:outline-none 
     focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all 
     duration-200 transform hover:scale-[1.02] hover:shadow-md`;
-  const buttonForGFT = `inline-flex w-full justify-center items-center rounded-lg border border-gray-300 bg-white 
-    py-2.5 px-4 text-sm font-medium text-gray-500 hover:bg-gray-50 shadow-sm transition-all 
-    duration-200 hover:shadow hover:border-gray-400`;
-
+  // const buttonForGFT = `inline-flex w-full justify-center items-center rounded-lg border border-gray-300 bg-white
+  //   py-2.5 px-4 text-sm font-medium text-gray-500 hover:bg-gray-50 shadow-sm transition-all
+  //   duration-200 hover:shadow hover:border-gray-400`;
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const handleSubmit = async (e) => {
+    setLoading(true);
+
     console.log("Handle submit called");
 
     e.preventDefault();
@@ -20,7 +29,8 @@ const SignUpForm = () => {
     const email = formData.get("email");
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
-    const imageFile = formData.get("profileImage"); // 👈 Add input below for this
+    const imageFile = formData.get("profileImage");
+    console.log("Image file:", imageFile);
 
     if (password !== confirmPassword) {
       alert("Passwords do not match");
@@ -30,10 +40,37 @@ const SignUpForm = () => {
     let profileUrl = "";
 
     if (imageFile) {
-      const imageRef = ref(storage, `profiles/${Date.now()}-${imageFile.name}`);
-      await uploadBytes(imageRef, imageFile);
-      profileUrl = await getDownloadURL(imageRef);
+      try {
+        setImageUploading(true);
+        const imageRef = ref(
+          storage,
+          `profiles/${Date.now()}-${imageFile.name}`
+        );
+        const uploadTask = uploadBytesResumable(imageRef, imageFile);
+
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+              const progress =
+                (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(Math.round(progress));
+            },
+            (error) => reject(error),
+            async () => {
+              profileUrl = await getDownloadURL(uploadTask.snapshot.ref);
+              setImageUploading(false);
+              resolve();
+            }
+          );
+        });
+        console.log("Image uploaded. URL:", profileUrl);
+      } catch (uploadError) {
+        console.error("Image upload failed:", uploadError);
+      }
     }
+
+    console.log(fullName, email, password, profileUrl);
 
     try {
       const res = await axios.post("http://localhost:5000/api/users/register", {
@@ -45,9 +82,16 @@ const SignUpForm = () => {
 
       console.log("User registered:", res.data);
       alert("Registration successful!");
+      setLoading(false);
+      setUploadProgress(0);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      navigate("/");
     } catch (err) {
       console.error(err);
       alert("Registration failed.");
+      setLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -61,7 +105,7 @@ const SignUpForm = () => {
           </p>
         </h1>
 
-        <form className="space-y-5 md:space-y-6" action="#">
+        <form className="space-y-5 md:space-y-6" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-5 md:gap-6">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -104,6 +148,18 @@ const SignUpForm = () => {
                 required
               />
             </div>
+
+            {uploadProgress > 0 && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {uploadProgress}% uploaded
+                </p>
+              </div>
+            )}
 
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -213,10 +269,58 @@ const SignUpForm = () => {
 
           <button
             type="submit"
-            onClick={handleSubmit}
             className={buttonClasses}
+            disabled={loading || imageUploading}
           >
-            Create Account
+            {imageUploading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg
+                  className="w-4 h-4 animate-spin text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                Uploading Image...
+              </span>
+            ) : loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg
+                  className="w-4 h-4 animate-spin text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                Registering User...
+              </span>
+            ) : (
+              "Create Account"
+            )}
           </button>
         </form>
 

@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-// import "../styles/Navbar.css";
 import { FaTimes, FaChevronDown, FaChevronUp } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Navbar = () => {
-  const navigate = useNavigate();
-  const getStarted = () => {
-    navigate("/about");
-  };
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   const services = [
     { label: "Website Designing", href: "/services/website-designing" },
     { label: "Website Development", href: "/services/website-development" },
@@ -132,6 +135,26 @@ const Navbar = () => {
 
         {/* Mobile hamburger */}
         {/* 1. Mobile-only button */}
+        {/* 2. Desktop-only button */}
+        <div className="md:block justify-between">
+          {user ? (
+            <a href="/profile" className="flex items-center gap-2">
+              <img
+                src={user.profileUrl}
+                alt="profile"
+                className="w-10 h-10 rounded-full border-2 border-blue-500 shadow-md hover:scale-105 transition-all duration-300"
+              />
+            </a>
+          ) : (
+            <a
+              href="/get-started"
+              className="inline-block px-6 py-2 font-medium text-white bg-blue-600 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300"
+            >
+              Get Started
+            </a>
+          )}
+        </div>
+
         <div className="md:hidden">
           <button
             className="text-gray-700 hover:text-indigo-600 focus:outline-none"
@@ -141,16 +164,6 @@ const Navbar = () => {
             <span className="block w-6 h-0.5 bg-gray-600 mb-1"></span>
             <span className="block w-6 h-0.5 bg-gray-600"></span>
           </button>
-        </div>
-
-        {/* 2. Desktop-only button */}
-        <div className="hidden md:block justify-between">
-          <a
-            href="/get-started"
-            className="inline-block px-6 py-2 font-medium text-white bg-blue-600 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300"
-          >
-            Get Started
-          </a>
         </div>
       </div>
       {/* Sidebar */}
