@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+
 import {
   PlusCircle,
   Edit,
@@ -165,59 +167,20 @@ const Admin = () => {
   const [currentEditingItem, setCurrentEditingItem] = useState(null);
 
   useEffect(() => {
-    // Simulate fetching data from an API
-    const fetchData = async () => {
-      setLoading(true);
-      // Mock user data
-      const mockUsers = [
-        {
-          id: "usr1",
-          name: "John Doe",
-          email: "john.doe@example.com",
-          role: "user",
-          status: "active",
-          registered: "2023-01-15",
-        },
-        {
-          id: "usr2",
-          name: "Jane Smith",
-          email: "jane.smith@example.com",
-          role: "admin",
-          status: "active",
-          registered: "2022-11-20",
-        },
-        {
-          id: "usr3",
-          name: "Peter Jones",
-          email: "peter.j@example.com",
-          role: "user",
-          status: "inactive",
-          registered: "2023-02-28",
-        },
-        {
-          id: "usr4",
-          name: "Anna Williams",
-          email: "anna.w@example.com",
-          role: "user",
-          status: "active",
-          registered: "2023-03-10",
-        },
-        {
-          id: "usr5",
-          name: "Mike Brown",
-          email: "mike.b@example.com",
-          role: "user",
-          status: "banned",
-          registered: "2023-04-05",
-        },
-      ];
-
-      await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate network delay
-      setUsers(mockUsers);
-      setLoading(false);
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("http://localhost:5000/api/users/getAllUsers");
+        const data = await res.json();
+        setUsers(data.data);
+      } catch (error) {
+        console.error("Error fetching users:", error.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchData();
+    fetchUsers();
   }, []);
 
   const cardVariants = {
@@ -387,7 +350,7 @@ const Admin = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.registered}
+                      {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button

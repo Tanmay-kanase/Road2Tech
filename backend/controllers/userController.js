@@ -1,4 +1,8 @@
-import { registerUser, loginUser } from "../services/userService.js";
+import {
+  registerUser,
+  loginUser,
+  getAllUsers,
+} from "../services/userService.js";
 import { sendOTP } from "../utils/mailer.js";
 
 const otpStore = {};
@@ -19,6 +23,16 @@ export const login = async (req, res, next) => {
   } catch (err) {
     const statusCode = err.code || 500;
     res.status(statusCode).json({ message: err.message });
+  }
+};
+
+export const getAllUsersController = async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    console.error("Error in /getAllUsers:", error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

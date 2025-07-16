@@ -64,3 +64,12 @@ export const loginUser = async ({ email, password }) => {
     },
   };
 };
+
+export const getAllUsers = async () => {
+  try {
+    const users = await User.find().select("-password"); // Exclude password
+    return users;
+  } catch (error) {
+    throw new Error("Error fetching users");
+  }
+};
