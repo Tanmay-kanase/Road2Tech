@@ -5,8 +5,14 @@ import axios from "axios";
 import { useState } from "react";
 import { uploadBytesResumable } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
-
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 const SignUpForm = () => {
+  const [otpVisible, setOtpVisible] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [email, setEmail] = useState("");
+
   const navigate = useNavigate();
   const buttonClasses = `w-full text-white bg-[#03C9D7] hover:bg-[#039BAB] focus:ring-4 focus:outline-none 
     focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all 
@@ -17,6 +23,32 @@ const SignUpForm = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const handleSendOtp = async () => {
+    if (!email) return alert("Enter email first");
+    try {
+      await axios.post("http://localhost:5000/api/users/otp/send", { email });
+      setOtpVisible(true);
+    } catch (err) {
+      alert("Failed to send OTP");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!email) return alert("Enter email first");
+    setVerifying(true);
+    try {
+      await axios.post("http://localhost:5000/api/users/otp/verify", {
+        email,
+        otp,
+      });
+      setOtpVerified(true);
+      setOtpVisible(false);
+    } catch (err) {
+      alert("Invalid OTP");
+    }
+    setVerifying(false);
+  };
+
   const handleSubmit = async (e) => {
     setLoading(true);
 
@@ -161,27 +193,67 @@ const SignUpForm = () => {
               </div>
             )}
 
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg
-                  className="w-5 h-5 text-gray-500"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
-                </svg>
+            <div className="flex justify-between items-center gap-2 ">
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none ">
+                  <svg
+                    className="w-5 h-5 text-gray-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-[#d5f2ec] border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-brightColor focus:border-brightColor block w-full pl-10 p-3"
+                  placeholder="Email address"
+                  required
+                />
               </div>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                className="bg-[#d5f2ec] border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-brightColor focus:border-brightColor block w-full pl-10 p-3 transition-all duration-200 shadow-sm"
-                placeholder="Email address"
-                required
-              />
+
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={otpVerified}
+                className={`ml-2 text-sm font-medium px-3 py-2 rounded-lg ${
+                  otpVerified
+                    ? "bg-green-500 text-white cursor-default"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                }`}
+              >
+                {otpVerified ? "Verified ✅" : "Send OTP"}
+              </button>
             </div>
+            {otpVisible && (
+              <div className="flex items-center gap-3 mt-3">
+                <input
+                  type="text"
+                  name="otp"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="flex-1 bg-[#d5f2ec] border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-3"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={verifying}
+                  className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700"
+                >
+                  {verifying ? (
+                    <AiOutlineLoading3Quarters className="animate-spin h-5 w-5 mx-auto" />
+                  ) : (
+                    "Verify"
+                  )}
+                </button>
+              </div>
+            )}
 
             <div className="relative">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">

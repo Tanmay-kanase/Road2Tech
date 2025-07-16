@@ -1,7 +1,7 @@
 import { registerUser, loginUser } from "../services/userService.js";
 import { sendOTP } from "../utils/mailer.js";
 
-let otpStore = {};
+const otpStore = {};
 
 export const register = async (req, res, next) => {
   try {
@@ -14,10 +14,11 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const result = await loginUser(req.body);
-    res.status(200).json(result);
+    const data = await loginUser(req.body);
+    res.status(200).json(data);
   } catch (err) {
-    next(err);
+    const statusCode = err.code || 500;
+    res.status(statusCode).json({ message: err.message });
   }
 };
 
@@ -29,6 +30,7 @@ export const sendOtpToEmail = async (req, res, next) => {
     await sendOTP(email, otp);
     res.status(200).json({ message: "OTP sent to email" });
   } catch (err) {
+    console.log(err);
     next(err);
   }
 };

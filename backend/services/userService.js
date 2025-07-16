@@ -34,10 +34,19 @@ export const registerUser = async ({ name, email, password, profileUrl }) => {
 
 export const loginUser = async ({ email, password }) => {
   const user = await User.findOne({ email });
-  if (!user) throw new Error("Invalid credentials");
+
+  if (!user) {
+    const error = new Error("Invalid email");
+    error.code = 404;
+    throw error;
+  }
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Invalid credentials");
+  if (!isMatch) {
+    const error = new Error("Wrong password");
+    error.code = 401;
+    throw error;
+  }
 
   const token = jwt.sign(
     { id: user._id, role: user.role },
@@ -45,5 +54,13 @@ export const loginUser = async ({ email, password }) => {
     { expiresIn: "1d" }
   );
 
-  return { token, user };
+  return {
+    token,
+    user: {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      profileUrl: user.profileUrl,
+    },
+  };
 };

@@ -14,3 +14,4 @@ router.post("/otp/send", sendOtpToEmail);
 router.post("/otp/verify", verifyOtp);
 
 export default router;
+

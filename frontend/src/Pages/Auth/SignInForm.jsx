@@ -1,6 +1,42 @@
 import React from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const SignInForm = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState("");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(""); // reset any previous error
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/users/login", {
+        email,
+        password,
+      });
+
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      navigate("/");
+    } catch (err) {
+      const msg = err?.response?.data?.message;
+      if (msg === "Invalid email") {
+        setErrorMessage("Email not found. Please register first.");
+      } else if (msg === "Wrong password") {
+        setErrorMessage("Password is incorrect.");
+      } else {
+        setErrorMessage("Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const buttonClasses = `w-full text-white bg-[#03C9D7] hover:bg-[#039BAB] focus:ring-4 focus:outline-none 
     focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-3 text-center transition-all 
     duration-200 transform hover:scale-[1.02] hover:shadow-md`;
@@ -17,7 +53,7 @@ const SignInForm = () => {
           </p>
         </h1>
 
-        <form className="space-y-5 md:space-y-6" action="#">
+        <form className="space-y-5 md:space-y-6" onSubmit={handleLogin}>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg
@@ -34,6 +70,8 @@ const SignInForm = () => {
               type="email"
               name="email"
               id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="bg-[#d5f2ec] border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-brightColor focus:border-brightColor block w-full pl-10 p-3 transition-all duration-200 shadow-sm"
               placeholder="Email address"
               required
@@ -59,11 +97,18 @@ const SignInForm = () => {
               type="password"
               name="password"
               id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="bg-[#d5f2ec] border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-brightColor focus:border-brightColor block w-full pl-10 p-3 transition-all duration-200 shadow-sm"
               placeholder="Password"
               required
             />
           </div>
+          {errorMessage && (
+            <span className="block text-red-600 text-sm text-center mt-2 animate-pulse">
+              {errorMessage}
+            </span>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex items-start">
@@ -92,8 +137,33 @@ const SignInForm = () => {
             </a>
           </div>
 
-          <button type="submit" className={buttonClasses}>
-            Sign in
+          <button type="submit" className={buttonClasses} disabled={loading}>
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg
+                  className="w-4 h-4 animate-spin text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                Signing in...
+              </span>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
 
