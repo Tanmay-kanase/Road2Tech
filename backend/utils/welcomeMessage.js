@@ -26,7 +26,7 @@ export const welcomeMessage = async (email) => {
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
-          <a href="https://your-road2tech-domain.com/dashboard" style="background-color: #2b6cb0; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; font-weight: 500;">
+          <a href="https://road2tech.in/" style="background-color: #2b6cb0; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; font-weight: 500;">
             🚀 Go to Dashboard
           </a>
         </div>

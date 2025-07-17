@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-
 import {
   PlusCircle,
   Edit,
@@ -10,7 +9,10 @@ import {
   Users,
   Briefcase,
   ShoppingBag,
-} from "lucide-react"; // Using lucide-react for icons
+  Info, // For message box
+} from "lucide-react";
+import api from "../config/axios";
+import { useNavigate } from "react-router-dom";
 
 // Mock data for services and products
 const initialServices = [
@@ -49,134 +51,226 @@ const initialProducts = [
   { id: 14, label: "Digital Products", href: "/products/digital-products" },
 ];
 
-// Modal component for adding/editing services/products
-const ItemModal = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  itemType,
-  mode,
-  currentItem,
-}) => {
-  const [label, setLabel] = useState("");
-  const [href, setHref] = useState("");
+const Admin = () => {
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (mode === "edit" && currentItem) {
-      setLabel(currentItem.label);
-      setHref(currentItem.href);
-    } else {
-      setLabel("");
-      setHref("");
+    const storedUser = localStorage.getItem("user");
+    const user = storedUser ? JSON.parse(storedUser) : null;
+
+    if (!user || user.role !== "admin") {
+      navigate("/"); // redirect to home
+      window.location.reload(); // optional: to fully reload state
     }
-  }, [isOpen, mode, currentItem]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({ id: currentItem?.id, label, href });
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center p-4 z-50"
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 50 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 50 }}
-        className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md relative"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          <XCircle size={24} />
-        </button>
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          {mode === "add"
-            ? `Add New ${itemType.slice(0, -1)}`
-            : `Edit ${itemType.slice(0, -1)}`}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="label"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Label
-            </label>
-            <input
-              type="text"
-              id="label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
-              placeholder={`e.g., ${
-                itemType === "services" ? "Website Designing" : "Mobile App"
-              }`}
-              required
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="href"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              URL (href)
-            </label>
-            <input
-              type="text"
-              id="href"
-              value={href}
-              onChange={(e) => setHref(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
-              placeholder={`e.g., /${itemType}/${
-                itemType === "services" ? "website-designing" : "mobile-app"
-              }`}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-300 shadow-md transform hover:scale-105"
-          >
-            {mode === "add" ? `Add ${itemType.slice(0, -1)}` : `Save Changes`}
-          </button>
-        </form>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const Admin = () => {
+  }, [navigate]);
   const [activeTab, setActiveTab] = useState("users"); // 'users', 'services', 'products'
   const [users, setUsers] = useState([]);
   const [services, setServices] = useState(initialServices);
   const [products, setProducts] = useState(initialProducts);
   const [loading, setLoading] = useState(true);
+  const [showSpinnerForDuration, setShowSpinnerForDuration] = useState(true); // New state for controlled spinner display
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add"); // 'add' or 'edit'
   const [modalItemType, setModalItemType] = useState(""); // 'services' or 'products'
   const [currentEditingItem, setCurrentEditingItem] = useState(null);
 
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState("");
+
+  const [message, setMessage] = useState({ text: "", type: "" }); // { text: "...", type: "success" | "error" }
+
+  // Function to show a temporary message
+  const showMessage = (text, type) => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage({ text: "", type: "" }), 3000); // Clear after 3 seconds
+  };
+
+  // Custom Confirmation Modal Component
+  const ConfirmationModal = ({ isOpen, onClose, onConfirm, message }) => {
+    if (!isOpen) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center p-4 z-50"
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 50 }}
+          className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm relative text-center"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <XCircle size={24} />
+          </button>
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">
+            Confirm Action
+          </h3>
+          <p className="text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={onClose}
+              className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              Confirm
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
+  // Modal component for adding/editing services/products
+  const ItemModal = ({
+    isOpen,
+    onClose,
+    onSubmit,
+    itemType,
+    mode,
+    currentItem,
+  }) => {
+    const [label, setLabel] = useState("");
+    const [href, setHref] = useState("");
+
+    useEffect(() => {
+      if (mode === "edit" && currentItem) {
+        setLabel(currentItem.label);
+        setHref(currentItem.href);
+      } else {
+        setLabel("");
+        setHref("");
+      }
+    }, [isOpen, mode, currentItem]);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      onSubmit({ id: currentItem?.id, label, href });
+      onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center p-4 z-50"
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 50 }}
+          className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md relative"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <XCircle size={24} />
+          </button>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            {mode === "add"
+              ? `Add New ${itemType.slice(0, -1)}`
+              : `Edit ${itemType.slice(0, -1)}`}
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="label"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Label
+              </label>
+              <input
+                type="text"
+                id="label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                placeholder={`e.g., ${
+                  itemType === "services" ? "Website Designing" : "Mobile App"
+                }`}
+                required
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="href"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                URL (href)
+              </label>
+              <input
+                type="text"
+                id="href"
+                value={href}
+                onChange={(e) => setHref(e.target.value)}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                placeholder={`e.g., /${itemType}/${
+                  itemType === "services" ? "website-designing" : "mobile-app"
+                }`}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-300 shadow-md transform hover:scale-105"
+            >
+              {mode === "add" ? `Add ${itemType.slice(0, -1)}` : `Save Changes`}
+            </button>
+          </form>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
+  // Reusable Tab Button Component
+  const TabButton = ({ icon, label, isActive, onClick }) => (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 py-3 px-6 text-lg font-medium transition-all duration-300 ease-in-out
+        ${
+          isActive
+            ? "text-purple-700 border-b-4 border-purple-600 bg-purple-50"
+            : "text-gray-600 hover:text-purple-700 hover:bg-gray-50 border-b-4 border-transparent"
+        }
+        rounded-t-lg
+      `}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const res = await fetch("http://localhost:5000/api/users/getAllUsers");
-        const data = await res.json();
-        setUsers(data.data);
+        setShowSpinnerForDuration(true); // Start showing spinner
+        const res = await api.get(`/api/users/getAllUsers`);
+        setUsers(res.data.data);
       } catch (error) {
         console.error("Error fetching users:", error.message);
+        showMessage("Failed to fetch users.", "error");
       } finally {
-        setLoading(false);
+        // Ensure spinner shows for at least 2.5 seconds
+        setTimeout(() => {
+          setLoading(false);
+          setShowSpinnerForDuration(false); // Hide spinner after duration
+        }, 500); // 2.5 seconds
       }
     };
 
@@ -201,36 +295,41 @@ const Admin = () => {
     },
   };
 
-  const statusColors = {
-    active: "bg-green-100 text-green-800",
-    inactive: "bg-yellow-100 text-yellow-800",
-    banned: "bg-red-100 text-red-800",
-  };
+  const handleUserAction = (id, action) => {
+    setConfirmAction(() => async () => {
+      try {
+        if (action === "makeAdmin") {
+          console.log("Admin change request called for user ID:", id);
+          await api.put(`/api/users/make-admin/${id}`);
+          showMessage("User role updated to Admin!", "success");
+        } else if (action === "delete") {
+          await api.delete(`/api/users/delete/${id}`);
+          setUsers(users.filter((user) => user._id !== id)); // Optimistic update
+          showMessage("User deleted successfully!", "success");
+        }
 
-  // --- User Management Actions ---
-  const handleUserAction = async (id, action) => {
-    alert(`User ID: ${id} - Action: ${action}`);
-    // In a real app, you'd make API calls here to update user status/role/delete
-    // For edit, you might open a specific user edit modal
-    if (action === "makeAdmin") {
-      console.log("Admin change request called!");
-
-      await axios.put(`http://localhost:5000/api/users/make-admin/${id}`);
-
-      // fetchUsers(); // re-fetch users if needed
-    }
+        // ✅ Fix: Axios doesn't need .json()
+        const res = await api.get("/api/users/getAllUsers");
+        const data = res.data.data; // or res.data.data if your backend wraps it
+        setUsers(data);
+      } catch (err) {
+        console.error(`Error performing ${action} on user:`, err);
+        showMessage(`Failed to ${action} user.`, "error");
+      } finally {
+        setIsConfirmModalOpen(false);
+      }
+    });
 
     if (action === "delete") {
-      try {
-        await axios.delete(`http://localhost:5000/api/users/delete/${id}`);
-        alert("User deleted");
-      } catch (err) {
-        alert("User not deleted");
-      }
+      setConfirmMessage("Are you sure you want to delete this user?");
+    } else if (action === "makeAdmin") {
+      setConfirmMessage("Are you sure you want to make this user an Admin?");
     }
+
+    setIsConfirmModalOpen(true);
   };
 
-  // --- Service/Product Management Actions ---
+  // --- Service/Product Management Actions (in-memory) ---
   const handleAddItem = (type) => {
     setModalItemType(type);
     setModalMode("add");
@@ -246,38 +345,51 @@ const Admin = () => {
   };
 
   const handleDeleteItem = (type, id) => {
-    if (confirm(`Are you sure you want to delete this ${type.slice(0, -1)}?`)) {
+    setConfirmAction(() => () => {
       if (type === "services") {
         setServices(services.filter((service) => service.id !== id));
+        showMessage("Service deleted successfully!", "success");
       } else if (type === "products") {
         setProducts(products.filter((product) => product.id !== id));
+        showMessage("Product deleted successfully!", "success");
       }
-      alert(`${type.slice(0, -1)} deleted successfully!`);
-    }
+      setIsConfirmModalOpen(false);
+    });
+    setConfirmMessage(
+      `Are you sure you want to delete this ${type.slice(0, -1)}?`
+    );
+    setIsConfirmModalOpen(true);
   };
 
   const handleModalSubmit = (item) => {
     if (modalMode === "add") {
-      const newItem = { ...item, id: Date.now().toString() }; // Simple ID generation
+      const newItem = { ...item, id: Date.now() }; // Use Date.now() for unique ID
       if (modalItemType === "services") {
         setServices([...services, newItem]);
       } else if (modalItemType === "products") {
         setProducts([...products, newItem]);
       }
-      alert(`${modalItemType.slice(0, -1)} added successfully!`);
+      showMessage(
+        `${modalItemType.slice(0, -1)} added successfully!`,
+        "success"
+      );
     } else if (modalMode === "edit") {
       if (modalItemType === "services") {
         setServices(services.map((s) => (s.id === item.id ? item : s)));
       } else if (modalItemType === "products") {
         setProducts(products.map((p) => (p.id === item.id ? item : p)));
       }
-      alert(`${modalItemType.slice(0, -1)} updated successfully!`);
+      showMessage(
+        `${modalItemType.slice(0, -1)} updated successfully!`,
+        "success"
+      );
     }
     setIsModalOpen(false);
   };
 
   const renderContent = () => {
-    if (loading) {
+    // Display spinner if showSpinnerForDuration is true
+    if (showSpinnerForDuration) {
       return (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500"></div>
@@ -285,6 +397,7 @@ const Admin = () => {
       );
     }
 
+    // Render content only when spinner duration is over
     switch (activeTab) {
       case "users":
         return (
@@ -341,7 +454,7 @@ const Admin = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
                   <motion.tr
-                    key={user.id}
+                    key={user._id} // Assuming user._id from backend
                     variants={itemVariants}
                     whileHover={{ scale: 1.01, backgroundColor: "#f9fafb" }}
                   >
@@ -549,6 +662,27 @@ const Admin = () => {
         </p>
       </motion.header>
 
+      {/* Message Box */}
+      <AnimatePresence>
+        {message.text && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-[100]
+              ${
+                message.type === "success"
+                  ? "bg-green-500 text-white"
+                  : "bg-red-500 text-white"
+              }
+            `}
+          >
+            <Info size={20} />
+            <span>{message.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div
         initial="hidden"
         animate="visible"
@@ -590,27 +724,15 @@ const Admin = () => {
           mode={modalMode}
           currentItem={currentEditingItem}
         />
+        <ConfirmationModal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setIsConfirmModalOpen(false)}
+          onConfirm={confirmAction}
+          message={confirmMessage}
+        />
       </AnimatePresence>
     </div>
   );
 };
-
-// Reusable Tab Button Component
-const TabButton = ({ icon, label, isActive, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 py-3 px-6 text-lg font-medium transition-all duration-300 ease-in-out
-      ${
-        isActive
-          ? "text-purple-700 border-b-4 border-purple-600 bg-purple-50"
-          : "text-gray-600 hover:text-purple-700 hover:bg-gray-50 border-b-4 border-transparent"
-      }
-      rounded-t-lg
-    `}
-  >
-    {icon}
-    {label}
-  </button>
-);
 
 export default Admin;

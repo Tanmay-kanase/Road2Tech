@@ -6,6 +6,7 @@ import { useState } from "react";
 import { uploadBytesResumable } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import api from "../../config/axios";
 const SignUpForm = () => {
   const [otpVisible, setOtpVisible] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -26,7 +27,7 @@ const SignUpForm = () => {
   const handleSendOtp = async () => {
     if (!email) return alert("Enter email first");
     try {
-      await axios.post("http://localhost:5000/api/users/otp/send", { email });
+      await api.post(`/api/users/otp/send`, { email });
       setOtpVisible(true);
     } catch (err) {
       alert("Failed to send OTP");
@@ -37,7 +38,7 @@ const SignUpForm = () => {
     if (!email) return alert("Enter email first");
     setVerifying(true);
     try {
-      await axios.post("http://localhost:5000/api/users/otp/verify", {
+      await api.post(`/api/users/otp/verify`, {
         email,
         otp,
       });
@@ -105,7 +106,7 @@ const SignUpForm = () => {
     console.log(fullName, email, password, profileUrl);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/users/register", {
+      const res = await api.post("/api/users/register", {
         name: fullName,
         email,
         password,

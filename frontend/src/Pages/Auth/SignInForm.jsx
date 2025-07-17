@@ -2,6 +2,7 @@ import React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import api from "../../config/axios";
 
 const SignInForm = () => {
   const [email, setEmail] = useState("");
@@ -15,7 +16,7 @@ const SignInForm = () => {
     setErrorMessage(""); // reset any previous error
 
     try {
-      const res = await axios.post("http://localhost:5000/api/users/login", {
+      const res = await api.post(`/api/users/login`, {
         email,
         password,
       });

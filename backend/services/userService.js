@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { welcomeMessage } from "../utils/welcomeMessage.js";
 
 export const registerUser = async ({ name, email, password, profileUrl }) => {
   const existingUser = await User.findOne({ email });
@@ -21,6 +22,8 @@ export const registerUser = async ({ name, email, password, profileUrl }) => {
     { expiresIn: "1d" }
   );
 
+  await welcomeMessage(user.email);
+
   return {
     token,
     user: {
@@ -28,6 +31,7 @@ export const registerUser = async ({ name, email, password, profileUrl }) => {
       email: user.email,
       name: user.name,
       profileUrl: user.profileUrl,
+      role: user.role,
     },
   };
 };
@@ -61,6 +65,7 @@ export const loginUser = async ({ email, password }) => {
       email: user.email,
       name: user.name,
       profileUrl: user.profileUrl,
+      role: user.role,
     },
   };
 };
@@ -70,6 +75,7 @@ export const getAllUsers = async () => {
     const users = await User.find().select("-password"); // Exclude password
     return users;
   } catch (error) {
+    console.log(error.message);
     throw new Error("Error fetching users");
   }
 };

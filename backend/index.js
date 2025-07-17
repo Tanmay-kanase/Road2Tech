@@ -9,7 +9,12 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: `${process.env.VITE_FRONTEND_URL}`, // exact origin of Vite dev server
+    credentials: true, // allow credentials
+  })
+);
 app.use(express.json());
 
 app.use("/api/users", userRoutes);

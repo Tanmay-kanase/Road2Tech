@@ -1,17 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FaUserEdit, FaEnvelope, FaLock, FaUserShield } from "react-icons/fa";
 import { MdOutlineFileUpload } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
-  // Sample user data (replace with props or context)
-  const user = {
-    name: "Tanmay Sandeep Kanase",
-    email: "tanmay@example.com",
-    password: "********",
-    profileUrl: "https://i.pravatar.cc/150?img=68", // placeholder avatar
-    role: "admin",
-  };
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    // Load user from localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  if (!user) {
+    return <div className="text-center py-20">Loading user data...</div>;
+  }
+
+  const handleLogout = () => {
+    localStorage.clear(); // Remove token and user data
+    navigate("/"); // Navigate to home
+    window.location.reload(); // Force page reload
+  };
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-50 via-white to-blue-50 py-10 px-4">
       <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl p-8 md:p-12">
@@ -66,16 +78,6 @@ const Profile = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <FaLock className="text-blue-600" />
-                <div>
-                  <p className="text-sm text-gray-500">Password</p>
-                  <p className="text-lg font-medium text-gray-800">
-                    {user.password}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
                 <FaUserShield className="text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-500">Role</p>
@@ -92,6 +94,12 @@ const Profile = () => {
               </button>
               <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                 Save Changes
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Logout
               </button>
             </div>
           </div>
