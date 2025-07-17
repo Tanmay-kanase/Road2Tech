@@ -49,11 +49,7 @@ const Navbar = () => {
         {/* Logo */}
         <div className="flex items-center space-x-2 h-auto w-auto">
           <a href="/">
-            <img
-              src="Admin/images/Road2techlogo_1733290531539.jpeg"
-              alt="Logo"
-              className="h-16 w-auto"
-            />
+            <img src="/road2tech_logo.png" alt="Logo" className="h-16 w-auto" />
           </a>
         </div>
 
