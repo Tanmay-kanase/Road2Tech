@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 5173; // Use Render's PORT or a default for local dev
+const port = process.env.PORT || 3000; // Use Render's PORT or a default for local dev
 
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, "./dist")));
