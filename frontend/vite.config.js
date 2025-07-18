@@ -4,8 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   server: {
-    host: true, // allows binding to 0.0.0.0 (important for Render)
-    port: parseInt(process.env.PORT) || 5173, // use Render's PORT or default
+    host: true,
+    port: parseInt(process.env.PORT) || 5173,
+    allowedHosts: ["road2tech.onrender.com"],
     proxy: {
       "/api": {
         target: "https://road2tech-backend.onrender.com",
